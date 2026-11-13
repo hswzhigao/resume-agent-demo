@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>简历语义检索 Demo · resume-agent-demo</title>
+<style>
+  :root {
+    --bg: #f6f5f1; --panel: #ffffff; --ink: #1f2328; --muted: #6b6f76; --line: #e4e2dc;
+    --accent: #2f5d50; --accent-soft: #e3eee9;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 16px/1.7 -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+  }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 32px 20px 80px; }
+  h1 { font-size: 24px; margin: 0 0 4px; }
+  .sub { color: var(--muted); margin: 0 0 8px; font-size: 14px; }
+  .sub a { color: var(--accent); text-decoration: none; }
+  .badge { display: inline-block; background: var(--accent-soft); color: var(--accent);
+           border-radius: 999px; padding: 2px 10px; font-size: 12px; margin-bottom: 18px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+          padding: 18px 20px; margin-bottom: 18px; }
+  .card h2 { font-size: 16px; margin: 0 0 10px; }
+  textarea, input[type=text], input[type=number] {
+    width: 100%; font: inherit; color: inherit; border: 1px solid var(--line);
+    border-radius: 8px; padding: 9px 12px; background: #fff; }
+  textarea { min-height: 110px; resize: vertical; }
+  input[type=number] { width: 90px; }
+  .row { display: flex; gap: 10px; align-items: center; margin-top: 10px; flex-wrap: wrap; }
+  button { font: inherit; border: 1px solid var(--accent); background: var(--accent);
+           color: #fff; border-radius: 8px; padding: 8px 18px; cursor: pointer; }
+  button:disabled { opacity: .5; cursor: wait; }
+  button.ghost { background: #fff; color: var(--accent); }
+  label.k { color: var(--muted); font-size: 14px; }
+  .out { margin-top: 14px; }
+  .hit { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; }
+  .hit .t { font-weight: 600; }
+  .hit .m { color: var(--muted); font-size: 13px; margin-bottom: 6px; }
+  .hit pre { white-space: pre-wrap; word-break: break-word; margin: 0; font: inherit; }
+  .score { float: right; background: var(--accent-soft); color: var(--accent);
+           border-radius: 8px; padding: 1px 8px; font-size: 13px; }
+  .explain { background: #fbfaf7; border: 1px dashed var(--line); border-radius: 10px;
+             padding: 12px 14px; margin-top: 12px; white-space: pre-wrap; word-break: break-word; }
+  .err { color: #b3402f; }
+  .empty { color: var(--muted); }
+  footer { color: var(--muted); font-size: 13px; margin-top: 26px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>简历语义检索 Demo</h1>
+  <p class="sub">RAG + 混合召回（pgvector · RRF）+ LangGraph 编排 ｜
+    <a href="https://github.com/hswzhigao/resume-agent-demo" target="_blank">GitHub 开源</a> ｜
+    <a href="docs">API 调试页</a></p>
+  <span class="badge">库内为合成示例数据，输出自动打码</span>
+
+  <div class="card">
+    <h2>① JD → 匹配候选人</h2>
+    <textarea id="jd" placeholder="粘贴职位描述（JD），例如：招聘 Java 后端工程师，要求熟悉高并发、Redis、Kafka…"></textarea>
+    <div class="row">
+      <label class="k">返回人数</label>
+      <input type="number" id="mk" value="3" min="1" max="10">
+      <button id="btnMatch">匹配候选人</button>
+    </div>
+    <div class="out" id="matchOut"><p class="empty">结果将显示在这里。</p></div>
+  </div>
+
+  <div class="card">
+    <h2>② 关键词 → 检索简历片段</h2>
+    <input type="text" id="q" placeholder="例如：Java 高并发 / RAG 知识库 / React 全栈">
+    <div class="row">
+      <label class="k">条数</label>
+      <input type="number" id="sk" value="5" min="1" max="20">
+      <button id="btnSearch" class="ghost">搜索片段</button>
+    </div>
+    <div class="out" id="searchOut"><p class="empty">结果将显示在这里。</p></div>
+  </div>
+
+  <footer>库内为合成示例数据 ｜ 输出默认对手机号 / 邮箱打码 ｜ 本页无追踪、无 Cookie ｜
+    同一能力可通过 MCP 工具（search_resumes / explain_match）被 Claude Code 等 Agent 调用。</footer>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+const mdLite = s => esc(s).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/\n/g, "<br>");
+
+async function call(path, body, btn, out) {
+  btn.disabled = true;
+  out.innerHTML = '<p class="empty">计算中…</p>';
+  try {
+    const r = await fetch(path, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.detail || r.statusText);
+    return d;
+  } catch (e) {
+    out.innerHTML = `<p class="err">请求失败：${esc(String(e.message || e))}</p>`;
+    return null;
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+$("btnMatch").onclick = async () => {
+  const jd = $("jd").value.trim();
+  if (!jd) { $("matchOut").innerHTML = '<p class="err">请先粘贴 JD。</p>'; return; }
+  const d = await call("match", { jd, top_k: Math.min(10, Math.max(1, +$("mk").value || 3)) },
+                       $("btnMatch"), $("matchOut"));
+  if (!d) return;
+  let html = (d.candidates || []).map(c => `
+    <div class="hit">
+      <span class="score">${c.score} 分</span>
+      <div class="t">${esc(c.title)}</div>
+      <div class="m">引用片段：${(c.cites || []).map(i => "[" + i + "]").join(" ")}</div>
+      <pre>${esc(c.reason || "")}</pre>
+    </div>`).join("");
+  html += `<div class="explain">${mdLite(d.explanation || "")}</div>`;
+  $("matchOut").innerHTML = html || '<p class="empty">无候选。</p>';
+};
+
+$("btnSearch").onclick = async () => {
+  const query = $("q").value.trim();
+  if (!query) { $("searchOut").innerHTML = '<p class="err">请输入关键词。</p>'; return; }
+  const d = await call("search", { query, top_k: Math.min(20, Math.max(1, +$("sk").value || 5)) },
+                       $("btnSearch"), $("searchOut"));
+  if (!d) return;
+  $("searchOut").innerHTML = (d.results || []).map(h => `
+    <div class="hit">
+      <div class="t">${esc(h.title)}</div>
+      <div class="m">${esc(h.section || "正文")} ｜ score=${h.score}</div>
+      <pre>${esc(h.content)}</pre>
+    </div>`).join("") || '<p class="empty">无命中。</p>';
+};
+</script>
+</body>
+</html>

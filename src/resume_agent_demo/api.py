@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
 
 from .config import Settings, get_settings
@@ -11,6 +12,8 @@ from .graph import run_match
 from .ingest import ingest_folder
 from .retriever import search
 from .store import make_engine
+
+_INDEX_HTML = Path(__file__).parent / "static" / "index.html"
 
 
 class IngestRequest(BaseModel):
@@ -33,6 +36,11 @@ def create_app(settings: Settings | None = None, engine=None) -> FastAPI:
     engine = engine if engine is not None else make_engine(settings.database_url)
 
     app = FastAPI(title="resume-agent-demo", version="0.1.0", root_path=settings.root_path)
+
+    @app.get("/", response_class=HTMLResponse, include_in_schema=False)
+    def index() -> str:
+        """操作页面（单文件 HTML，fetch 相对路径以兼容反代前缀）。"""
+        return _INDEX_HTML.read_text(encoding="utf-8")
 
     @app.get("/health")
     def health() -> dict[str, Any]:
