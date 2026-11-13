@@ -3,6 +3,8 @@
 输入一份 JD（职位描述），从简历库中**语义检索最匹配的候选人**，并给出带引用编号的解释。
 用作求职作品集：演示 RAG、混合召回、LangGraph 编排、MCP 工具与工程化测试的完整落地。
 
+**在线演示**：https://hhao1121.cn/demo/ （Swagger：https://hhao1121.cn/demo/docs ，库内为合成数据）
+
 [![ci](https://github.com/hswzhigao/resume-agent-demo/actions/workflows/ci.yml/badge.svg)](https://github.com/hswzhigao/resume-agent-demo/actions/workflows/ci.yml)
 
 ## 架构
