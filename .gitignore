@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
+# 环境与密钥
+.env
+.env.*
+
+# 本地私有数据（真实简历不入库）
+data/private/
+
+# macOS / IDE
+.DS_Store
+.idea/
+.vscode/

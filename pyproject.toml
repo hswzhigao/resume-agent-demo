@@ -1,0 +1,47 @@
+[project]
+name = "resume-agent-demo"
+version = "0.1.0"
+description = "JD → 简历语义检索与匹配 Demo：RAG + 混合召回 + LangGraph 编排 + MCP 工具"
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "MIT" }
+authors = [{ name = "hswzhigao" }]
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+    "sqlalchemy>=2.0",
+    "psycopg[binary]>=3.2",
+    "pgvector>=0.3",
+    "pypdf>=4",
+    "httpx>=0.27",
+    "pydantic-settings>=2.4",
+    "langgraph>=0.2",
+    "langchain-core>=0.3",
+    "mcp>=1.2,<2",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8",
+    "testcontainers[postgres]>=4",
+    "ruff>=0.6",
+    "pgserver>=0.1.4",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/resume_agent_demo"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
