@@ -30,6 +30,9 @@ class Settings(BaseSettings):
 
     mask_pii: bool = True
 
+    # 反向代理路径前缀（如 nginx 挂在 /demo 下时设为 /demo）
+    root_path: str = ""
+
     # Langfuse 可观测（可选）
     langfuse_public_key: str = ""
     langfuse_secret_key: str = ""

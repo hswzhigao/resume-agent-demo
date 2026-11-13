@@ -32,7 +32,7 @@ def create_app(settings: Settings | None = None, engine=None) -> FastAPI:
     settings = settings or get_settings()
     engine = engine if engine is not None else make_engine(settings.database_url)
 
-    app = FastAPI(title="resume-agent-demo", version="0.1.0")
+    app = FastAPI(title="resume-agent-demo", version="0.1.0", root_path=settings.root_path)
 
     @app.get("/health")
     def health() -> dict[str, Any]:
