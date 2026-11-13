@@ -30,6 +30,11 @@ class Settings(BaseSettings):
 
     mask_pii: bool = True
 
+    # Langfuse 可观测（可选）
+    langfuse_public_key: str = ""
+    langfuse_secret_key: str = ""
+    langfuse_host: str = ""
+
     @property
     def has_embedding(self) -> bool:
         return bool(self.embedding_base_url and self.embedding_api_key and self.embedding_model)

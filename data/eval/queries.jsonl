@@ -1,0 +1,12 @@
+{"query": "Java 高并发 后端", "expected": ["张三"]}
+{"query": "Redis 缓存 热点数据", "expected": ["张三"]}
+{"query": "Kafka 消息推送", "expected": ["张三"]}
+{"query": "Spring Boot MyBatis", "expected": ["张三"]}
+{"query": "MySQL 索引 调优", "expected": ["张三"]}
+{"query": "Python FastAPI 数据处理", "expected": ["李四"]}
+{"query": "RAG 知识库 检索", "expected": ["李四"]}
+{"query": "pgvector 向量 召回", "expected": ["李四"]}
+{"query": "LangChain 大模型 摘要", "expected": ["李四"]}
+{"query": "React TypeScript 前端", "expected": ["王五"]}
+{"query": "Kubernetes 蓝绿发布", "expected": ["王五"]}
+{"query": "Go Gin 后端", "expected": ["王五"]}

@@ -65,3 +65,20 @@ def test_no_candidates_explains_ingest_hint():
 
     result = run_match(None, settings, "任何 JD", top_k=3, retriever=empty_retriever)
     assert "入库" in result["explanation"]
+
+
+def test_match_emits_trace_event():
+    from resume_agent_demo.tracing import RecordingSink
+
+    settings = Settings(mask_pii=False)
+    sink = RecordingSink()
+    result = run_match(
+        None, settings, "招聘 Java 后端", top_k=2,
+        retriever=fake_retriever, trace_sink=sink,
+    )
+    assert len(sink.events) == 1
+    event = sink.events[0]
+    assert event["name"] == "match"
+    assert event["metadata"]["mode"] == "heuristic"
+    assert event["duration_ms"] >= 0
+    assert result["mode"] in event["metadata"]["mode"]

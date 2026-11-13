@@ -13,6 +13,7 @@ from .config import Settings
 from .embeddings import get_llm_client
 from .retriever import SearchHit, search
 from .tokenizer import tokenize
+from .tracing import NoopSink, TimedSink, TraceSink, get_trace_sink
 
 
 class MatchState(TypedDict, total=False):
@@ -177,12 +178,21 @@ def run_match(
     top_k: int = 5,
     llm: OpenAIChatClient | None = None,
     retriever=None,
+    trace_sink: TraceSink | None = None,
 ) -> dict[str, Any]:
     graph = build_graph(engine, settings, llm=llm, retriever=retriever)
+    timed = TimedSink(trace_sink or get_trace_sink(settings) or NoopSink())
     final = graph.invoke({"jd": jd, "top_k": top_k})
-    return {
+    result = {
         "mode": final["mode"],
         "query": final["query"],
         "candidates": final["ranked"],
         "explanation": final["explanation"],
     }
+    timed.trace(
+        name="match",
+        input={"jd": jd[:300]},
+        output={"mode": final["mode"], "top_titles": [c["title"] for c in final["ranked"]]},
+        metadata={"query": final["query"], "mode": final["mode"], "top_k": top_k},
+    )
+    return result

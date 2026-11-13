@@ -94,6 +94,22 @@ PGVECTOR_IMAGE=pgvector/pgvector:pg16 uv run pytest  # 强制用 Testcontainers
 uv run ruff check .                  # lint
 ```
 
+## 检索评测
+
+评测集 `data/eval/queries.jsonl`（12 条，含期望命中人），指标 hit@k / MRR：
+
+```bash
+uv run python scripts/eval.py -k 3
+```
+
+当前基线（本地 hash 向量 + 关键词路）：**hit@3 = 100%，MRR = 0.958**。
+接入真实 embedding 模型后重跑即可对比——这是「模型评测」闭环的起点。
+
+## 可观测
+
+配置 `.env` 里的 `LANGFUSE_*` 后，每次 `/match` 与 `explain_match` 自动上报 trace
+（输入 JD、检索词、评分模式、耗时、候选列表）；未配置时为 no-op。
+
 ## 设计说明
 
 见 [docs/design.md](docs/design.md)。关键取舍：
@@ -101,14 +117,14 @@ uv run ruff check .                  # lint
 | 决策 | 理由 |
 | --- | --- |
 | PostgreSQL + pgvector | 生产最常用的向量方案，兼顾岗位面试要求 |
-| pg_trgm 做关键词路 | 中文无分词依赖，trigram 对 CJK 子串有效 |
+| pg_trgm 做关键词路，缺失自动降级 ILIKE | 中文无分词依赖；裁剪版发行版也能跑 |
 | RRF 融合 | 排名融合免调参，可独立单测 |
 | 本地 hash 向量降级 | 离线可跑、CI 无密钥；仅开发用，质量有限 |
-| 启发式 LLM 降级 | 图结构始终可验证， Key 即插即用 |
+| 启发式 LLM 降级 | 图结构始终可验证，Key 即插即用 |
 
 ## Roadmap
 
-- [ ] Langfuse 接入：trace 与 RAG 评测（hit@k / 忠实度）
+- [x] Langfuse 接入：trace（hit@k / MRR 评测已内置 scripts/eval.py；忠实度评测待补）
 - [ ] 简历 PDF 真实样例的解析增强（OCR fallback）
 - [ ] IVFFlat / HNSW 索引（数据量 10 万级再启用）
 - [ ] Dify 版本的知识库应用对照实现
